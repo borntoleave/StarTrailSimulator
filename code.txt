@@ -1,0 +1,64 @@
+foreImg = Import["/wfurc6/choGrp/lir0/starTrail/input.jpg"];
+{wt, ht} = ImageDimensions[foreImg];
+starTrail[orig_, arc_, nStars_, thickness_,
+variance_] := (coord := Round[orig];
+range := {{Min[coord[[1]], 0],
+Max[coord[[1]], wt]}, {Min[coord[[2]], 0],
+Max[coord[[2]], ht]}};
+stars =
+Transpose[{RandomInteger[{Min[coord[[1]], 0], Max[coord[[1]], wt]},
+nStars],
+RandomInteger[{Min[coord[[2]], 0], Max[coord[[2]], ht]},
+nStars]}];
+
+Graphics[
+Table[vec = stars[[i]] - coord;
+ang = If[vec[[2]] != 0, a = ArcCot[Apply[Divide, vec]];
+If[vec[[1]] > 0, a, Pi + a],
+If[vec[[1]] > 0, 0, Pi]]; {Thickness[
+RandomReal[{0.0002 thickness, 0.002 thickness}]],
+Darker[ColorData["TemperatureMap"][
+RandomReal[{0.5 - variance , 0.5 + variance}]],
+RandomReal[{0.5, 0.9}]],
+Circle[coord,
+EuclideanDistance[stars[[i]], coord], {ang,
+ang + arc/180*Pi}]}, {i, nStars}],
+PlotRange -> {{0, wt}, {0, ht}}, ImageSize -> {{0, wt}, {0, ht}}])
+
+<<config.txt;
+
+ft[threshold_] := (smW = 200;
+mat = ImageData[
+ColorConvert[ImageResize[foreImg, {smW}], "GrayScale"]];
+{smH, smW} = Dimensions[mat];
+init = {10, 10};
+queue = {};
+searchDir =
+DeleteCases[
+Flatten[Table[{i, j}, {i, -1, 1}, {j, -1, 1}], 1], {0, 0}];
+AppendTo[queue, init]; mat[[init[[1]], init[[2]]]] = -1;
+While[Length[queue] != 0,
+{curIdx = queue[[1]]; queue = Delete[queue, 1];
+curV = mat[[#1, #2]] & @@ curIdx;
+Do[srhIdx = curIdx + searchDir[[d]];
+If[srhIdx[[1]] >= 1 && srhIdx[[1]] <= smH && srhIdx[[2]] >= 1 &&
+srhIdx[[2]] <= smW, srhV = mat[[#1, #2]] & @@ srhIdx;
+If[(srhV != -1) && srhV < threshold, AppendTo[queue, srhIdx];
+mat[[srhIdx[[1]], srhIdx[[2]]]] = -1;, Continue]
+, Continue];
+, {d, 8}];}
+];
+filter = Table[0, {smH}, {smW}];
+Table[filter[[i, j]] = If[mat[[i, j]] == -1, 1, 0], {i, smH}, {j,
+smW}];
+blk = ImageResize[
+MatrixPlot[filter, ColorRules -> {1 -> White, 0 -> Black},
+Frame -> False], 1.1 wt])
+
+trail = ImageMultiply[
+ColorNegate@
+starTrail[{xCoord, yCoord}, length, nStars, thickness, variance],
+ft[threshold]];
+
+Export["/wfurc6/choGrp/lir0/starTrail/product.png",ImageAdd[foreImg,trail],"PNG"];
+Quit[];

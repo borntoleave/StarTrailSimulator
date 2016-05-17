@@ -1,0 +1,7 @@
+threshold=0.08;
+xCoord=0.1*wt;
+yCoord=0.5*ht;
+length=10;
+nStars=300;
+thickness=1;
+variance=0.2;
